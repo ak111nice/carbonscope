@@ -82,6 +82,7 @@ footer { text-align:center; padding:16px; color:#475569; font-size:.72rem }
     </div>
     <input type="file" id="csvFile" accept=".csv" style="width:auto" onchange="handleCSV(event)">
     <span id="csvPreview" style="color:#94a3b8;font-size:.78rem;margin-left:8px"></span>
+    <div class="section-note" style="margin-top:6px">💡 支持任意列顺序，表头含"日期/能源/活动数据"等关键字即可（中英文均可）。也支持从 PDF 解析结果一键导入。</div>
   </div>
   <div id="calcResults" style="display:none">
     <div class="card" id="managementPanel"><h3>🏢 企业管理看板</h3></div>
@@ -363,7 +364,27 @@ function renderDataAuditPanel(results){
 }
 function parseCsvText(text,source){
   const lines=text.trim().split(/\r?\n/).filter(l=>l.trim());
-  return lines.slice(1).map(l=>{const c=l.split(',');return{日期:c[0]||'',部门:c[1]||'',能源类型:c[2]||'',活动数据:parseFloat(c[3]),数据单位:c[4]||'',来源:source}});
+  if(!lines.length)return[];
+  // 按列名匹配，不管顺序
+  const header=lines[0].toLowerCase();
+  const idx={
+    日期:header.split(',').findIndex(h=>/日期|date|month/i.test(h)),
+    部门:header.split(',').findIndex(h=>/部门|dept|department|单位|org/i.test(h)),
+    能源类型:header.split(',').findIndex(h=>/能源|energy|fuel|类型|type/i.test(h)),
+    活动数据:header.split(',').findIndex(h=>/活动|activity|数据|data|用量|usage|量|value/i.test(h)),
+    数据单位:header.split(',').findIndex(h=>/单位|unit/i.test(h))
+  };
+  return lines.slice(1).map(l=>{
+    const c=l.split(',');
+    return{
+      日期:c[idx.日期]||'',
+      部门:c[idx.部门]||'',
+      能源类型:c[idx.能源类型]||'',
+      活动数据:parseFloat(c[idx.活动数据]),
+      数据单位:c[idx.数据单位]||'',
+      来源:source
+    };
+  });
 }
 function handleCSV(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{currentData=parseCsvText(ev.target.result,'CSV导入');document.getElementById('csvPreview').textContent='✅ CSV导入 '+currentData.length+'条';runCalc()};r.readAsText(f,'utf-8')}
 function loadDemo(){currentData=[{日期:"2025-01",部门:"生产车间",能源类型:"电网电力",活动数据:1200,数据单位:"MWh",来源:"演示数据"},{日期:"2025-01",部门:"生产车间",能源类型:"天然气",活动数据:8.5,数据单位:"万m³",来源:"演示数据"},{日期:"2025-01",部门:"生产车间",能源类型:"烟煤",活动数据:45,数据单位:"吨",来源:"演示数据"},{日期:"2025-01",部门:"办公楼",能源类型:"电网电力",活动数据:300,数据单位:"MWh",来源:"演示数据"},{日期:"2025-02",部门:"生产车间",能源类型:"电网电力",活动数据:1150,数据单位:"MWh",来源:"演示数据"},{日期:"2025-02",部门:"生产车间",能源类型:"天然气",活动数据:9.1,数据单位:"万m³",来源:"演示数据"},{日期:"2025-02",部门:"生产车间",能源类型:"烟煤",活动数据:42,数据单位:"吨",来源:"演示数据"},{日期:"2025-02",部门:"运输车队",能源类型:"柴油",活动数据:3.5,数据单位:"吨",来源:"演示数据"},{日期:"2025-03",部门:"生产车间",能源类型:"电网电力",活动数据:1300,数据单位:"MWh",来源:"演示数据"},{日期:"2025-03",部门:"生产车间",能源类型:"天然气",活动数据:7.8,数据单位:"万m³",来源:"演示数据"},{日期:"2025-03",部门:"生产车间",能源类型:"烟煤",活动数据:48,数据单位:"吨",来源:"演示数据"},{日期:"2025-03",部门:"运输车队",能源类型:"柴油",活动数据:4.2,数据单位:"吨",来源:"演示数据"},{日期:"2025-03",部门:"运输车队",能源类型:"汽油",活动数据:1.8,数据单位:"吨",来源:"演示数据"}];document.getElementById('csvPreview').textContent='✅ 演示 '+currentData.length+'条';runCalc()}
