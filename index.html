@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 碳盘查系统 | CarbonScope v4</title>
+<style>
+:root { --bg:#0f172a; --card:#1e293b; --text:#e2e8f0; --accent:#22d3ee; --danger:#ef4444; --warn:#f59e0b; --ok:#10b981; --border:#334155 }
+* { box-sizing:border-box; margin:0; padding:0 }
+body { background:var(--bg); color:var(--text); font-family:'Segoe UI','Microsoft YaHei',system-ui,sans-serif; min-height:100vh }
+header { background:var(--card); border-bottom:1px solid var(--border); padding:14px 24px; display:flex; align-items:center; gap:12px }
+header h1 { font-size:1.3rem; background:linear-gradient(135deg,var(--accent),#818cf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent }
+nav { display:flex; gap:4px; padding:10px 24px; background:var(--card); border-bottom:1px solid var(--border); overflow-x:auto; white-space:nowrap }
+nav button { background:transparent; border:1px solid transparent; color:#94a3b8; padding:8px 14px; border-radius:8px; cursor:pointer; font-size:.82rem; transition:.2s; white-space:nowrap }
+nav button:hover { color:var(--text); background:rgba(255,255,255,.05) }
+nav button.active { background:rgba(34,211,238,.12); color:var(--accent); border-color:rgba(34,211,238,.3) }
+main { max-width:1200px; margin:0 auto; padding:20px }
+.tab { display:none }
+.tab.active { display:block }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px; margin-bottom:16px }
+.card h3 { font-size:1rem; margin-bottom:10px }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px }
+.grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:12px }
+.metric { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; text-align:center }
+.metric .value { font-size:1.6rem; font-weight:700 }
+.metric .label { font-size:.72rem; color:#94a3b8; margin-top:4px }
+table { width:100%; border-collapse:collapse; font-size:.8rem }
+th { text-align:left; padding:8px; background:rgba(255,255,255,.03); color:#94a3b8; font-weight:500; border-bottom:1px solid var(--border) }
+td { padding:6px 8px; border-bottom:1px solid rgba(51,65,85,.5) }
+input,select,textarea { background:var(--bg); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:6px; font-size:.82rem; width:100% }
+input:focus,select:focus { outline:none; border-color:var(--accent) }
+.btn { background:var(--accent); color:#0f172a; border:none; padding:10px 20px; border-radius:8px; font-weight:600; cursor:pointer; font-size:.82rem }
+.btn:hover { opacity:.9 }
+.btn-sm { padding:4px 10px; font-size:.72rem }
+.alert { padding:8px 12px; border-radius:8px; font-size:.8rem; margin-top:6px }
+.alert.info { background:rgba(34,211,238,.1); color:var(--accent); border:1px solid rgba(34,211,238,.2) }
+.alert.warn { background:rgba(245,158,11,.1); color:var(--warn); border:1px solid rgba(245,158,11,.2) }
+.alert.danger { background:rgba(239,68,68,.1); color:var(--danger); border:1px solid rgba(239,68,68,.2) }
+.badge { display:inline-block; padding:2px 7px; border-radius:999px; font-size:.68rem; border:1px solid var(--border); color:#94a3b8 }
+.badge.ok { color:var(--ok); border-color:rgba(16,185,129,.35); background:rgba(16,185,129,.08) }
+.badge.warn { color:var(--warn); border-color:rgba(245,158,11,.35); background:rgba(245,158,11,.08) }
+.badge.danger { color:var(--danger); border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.08) }
+.section-note { color:#94a3b8; font-size:.76rem; line-height:1.6; margin-top:6px }
+canvas { max-height:300px }
+.preview { background:var(--bg); border-radius:8px; padding:14px; font-family:'Consolas',monospace; font-size:.76rem; white-space:pre-wrap; max-height:400px; overflow-y:auto; line-height:1.5 }
+footer { text-align:center; padding:16px; color:#475569; font-size:.72rem }
+</style>
+</head>
+<body>
+<header>
+  <h1>🌍 CarbonScope v4</h1>
+  <span style="color:#94a3b8;font-size:.8rem">AI碳盘查 | 配额盈亏 | PDF解析 | IoT采集 | 碳足迹 | GB/T 32150 · ISO 14067</span>
+</header>
+<nav>
+  <button class="active" data-tab="calc">📊 碳排放核算</button>
+  <button data-tab="quota">💰 配额盈亏</button>
+  <button data-tab="product">🏭 产品碳足迹</button>
+  <button data-tab="pdf">📄 PDF解析</button>
+  <button data-tab="iot">📡 IoT仪表</button>
+  <button data-tab="report">📋 完整报告</button>
+  <button data-tab="about">ℹ️ 关于</button>
+</nav>
+<main>
+<div id="tab-calc" class="tab active">
+  <div class="card">
+    <h3>📂 能源数据</h3>
+    <input type="file" id="csvFile" accept=".csv" style="width:auto" onchange="handleCSV(event)">
+    <button class="btn btn-sm" style="margin-left:6px" onclick="loadDemo()">演示数据</button>
+    <span id="csvPreview" style="color:#94a3b8;font-size:.78rem;margin-left:8px"></span>
+  </div>
+  <div id="calcResults" style="display:none">
+    <div class="card" id="managementPanel"><h3>🏢 企业管理看板</h3></div>
+    <div class="grid3" id="metrics"></div>
+    <div class="grid2" style="margin-top:12px">
+      <div class="card"><h3>📊 排放结构</h3><canvas id="chartFuel"></canvas></div>
+      <div class="card"><h3>🔴🟡 Scope 占比</h3><canvas id="chartScope"></canvas></div>
+    </div>
+    <div class="grid2" style="margin-top:12px">
+      <div class="card" id="qualityPanel"><h3>🧪 数据质量检查</h3></div>
+      <div class="card" id="factorPanel"><h3>📚 排放因子追溯</h3></div>
+    </div>
+    <div class="card" id="aiAlerts"><h3>🤖 AI 分析</h3></div>
+    <div class="card" id="dataAuditPanel"><h3>📋 核算明细与来源</h3></div>
+  </div>
+</div>
+<div id="tab-quota" class="tab">
+  <div class="card">
+    <h3>💰 碳配额盈亏模拟器</h3>
+    <div class="grid2">
+      <div><label>年度免费配额 (tCO2)</label><input type="number" id="quotaFree" value="3500"><label style="margin-top:8px">碳价 (元/tCO2)</label><input type="number" id="quotaPrice" value="85"></div>
+      <div><label>当前排放 (tCO2)</label><input type="number" id="quotaTotal" placeholder="自动填入"><button class="btn btn-sm" style="margin-top:8px" onclick="syncQuota()">📊 填入核算结果</button><button class="btn btn-sm" style="margin-left:6px" onclick="simQuota()">🧮 计算盈亏</button></div>
+    </div>
+    <div id="quotaResult" style="margin-top:12px"></div>
+  </div>
+</div>
+<div id="tab-product" class="tab">
+  <div class="card">
+    <h3>🏭 产品碳足迹 (ISO 14067)</h3>
+    <div class="grid2">
+      <div><label>产品名称</label><input type="text" id="prodName" value="智能手机"><label style="margin-top:6px">原材料 (JSON)</label><textarea id="prodMats" rows="3">{"钢材":50,"铝材":10,"塑料":20,"芯片(kg)":1}</textarea></div>
+      <div><label>电力 (MWh)</label><input type="number" id="prodElec" value="0.5" step="0.1"><label style="margin-top:6px">运输方式</label><select id="prodTrans"><option>公路</option><option>铁路</option><option>海运</option><option>空运</option></select><label style="margin-top:6px">运输距离 (km)</label><input type="number" id="prodDist" value="800"><label style="margin-top:6px">运输重量 (吨)</label><input type="number" id="prodWeight" value="0.1" step="0.01"><label style="margin-top:6px">生产废品率 (%)</label><input type="number" id="prodWaste" value="5"></div>
+    </div>
+    <button class="btn" style="margin-top:10px" onclick="calcProduct()">计算碳足迹</button>
+    <div id="productResult" style="margin-top:12px"></div>
+  </div>
+</div>
+<div id="tab-pdf" class="tab">
+  <div class="card">
+    <h3>📄 PDF 能源账单自动解析</h3>
+    <input type="file" id="pdfFile" accept=".pdf" style="width:auto" onchange="handlePDF(event)">
+    <span style="color:#94a3b8;font-size:.76rem;margin-left:8px">支持中英文电费/燃气/燃煤账单，无需启动额外服务</span>
+    <div id="pdfProgress" style="margin-top:8px;color:#94a3b8"></div>
+    <div id="pdfReview" style="margin-top:10px;display:none">
+      <h4 style="font-size:.85rem;margin-bottom:6px">📋 确认提取结果（可取消勾选错误项）</h4>
+      <table id="pdfReviewTable" style="margin-bottom:8px"><thead><tr><th style="width:30px">✓</th><th>能源类型</th><th>数值</th><th>单位</th><th>来源</th></tr></thead><tbody></tbody></table>
+      <button class="btn" onclick="pdfConfirm()">✅ 确认导入</button>
+      <button class="btn btn-sm" style="margin-left:6px;background:#475569;color:#fff" onclick="pdfCancel()">🗑 全部丢弃</button>
+    </div>
+    <div id="pdfResult" style="margin-top:10px"></div>
+  </div>
+</div>
+<div id="tab-iot" class="tab">
+  <div class="card">
+    <h3>📡 IoT 仪表状态 (MODBUS 采集)</h3>
+    <button class="btn btn-sm" onclick="iotRefresh()">🔄 刷新模拟</button>
+    <button class="btn btn-sm" style="margin-left:6px;background:#10b981" onclick="iotCollect()">📊 采集并核算</button>
+    <input type="file" id="iotFile" accept=".csv" style="display:none" onchange="iotLoadCSV(event)">
+    <button class="btn btn-sm" style="margin-left:6px" onclick="document.getElementById('iotFile').click()">📂 加载采集器 CSV</button>
+    <span id="iotStatus" style="color:#94a3b8;font-size:.76rem;margin-left:8px">Python 采集器: python src/iot_collector.py</span>
+  </div>
+  <div class="grid3" id="iotGauges"></div>
+  <div class="card" id="iotEnergyResult" style="margin-top:12px"></div>
+</div>
+<div id="tab-report" class="tab">
+  <div class="card">
+    <h3>📋 完整报告</h3>
+    <button class="btn btn-sm" onclick="showReport()">生成报告</button>
+    <button class="btn btn-sm" style="margin-left:6px" onclick="downloadReport()" id="downloadBtn">下载 TXT</button>
+    <div id="reportContent" class="preview" style="margin-top:10px"></div>
+  </div>
+</div>
+<div id="tab-about" class="tab">
+  <div class="card">
+    <h3>ℹ️ CarbonScope v4 — AI 碳盘查自动化系统</h3>
+    <div style="line-height:1.8;font-size:.85rem;max-width:800px">
+      <h4 style="color:var(--accent);margin-top:12px">📌 项目定位</h4>
+      <p>面向制造企业的碳管理一站式工具。面试官打开即全功能演示，无需安装任何依赖。</p>
+
+      <h4 style="color:var(--accent);margin-top:12px">🏗 技术架构</h4>
+      <table style="font-size:.8rem;margin:8px 0">
+        <tr><td style="color:#94a3b8;width:100px">前端</td><td>HTML5 · Chart.js · pdf.js · 纯浏览器离线运行</td></tr>
+        <tr><td style="color:#94a3b8">引擎</td><td>Python · Pandas · pdfplumber · Streamlit · PyInstaller</td></tr>
+        <tr><td style="color:#94a3b8">因子库</td><td>JSON 独立维护，含版本号/来源/更新时间，可审计追溯</td></tr>
+        <tr><td style="color:#94a3b8">IoT</td><td>MODBUS RTU/TCP 协议模拟，7通道仪表实时采集</td></tr>
+        <tr><td style="color:#94a3b8">部署</td><td>GitHub Pages 纯前端 · Streamlit Web · PyInstaller EXE 三平台</td></tr>
+      </table>
+
+      <h4 style="color:var(--accent);margin-top:12px">📦 六大模块</h4>
+      <p>📊 碳排放核算（GB/T 32150-2025） | 💰 碳配额盈亏模拟 | 🏭 产品碳足迹（ISO 14067） | 📄 PDF 中文账单解析 | 📡 IoT MODBUS 采集 | 📋 完整报告导出</p>
+
+      <h4 style="color:var(--accent);margin-top:12px">🧪 质量控制</h4>
+      <p>数据校验（单位匹配·重复检测·负数拦截） → Z-score 异常检测 → 自然语言减排建议 → 碳市场合规判断</p>
+
+      <h4 style="color:var(--accent);margin-top:12px">🔗 链接</h4>
+      <p>
+        📂 <a href="https://github.com/ak111nice/carbonscope" target="_blank" style="color:var(--accent)">GitHub 仓库</a> &nbsp;|&nbsp;
+        🌐 <a href="https://ak111nice.github.io/carbonscope/" target="_blank" style="color:var(--accent)">在线演示</a> &nbsp;|&nbsp;
+        👤 <a href="mailto:1074146990@qq.com" style="color:var(--accent)">联系作者</a>
+      </p>
+
+      <h4 style="color:var(--accent);margin-top:12px">📁 技术栈详情</h4>
+      <p style="color:#94a3b8">Python: pandas · numpy · pdfplumber · Streamlit · PyInstaller · re · json</p>
+      <p style="color:#94a3b8">前端: Chart.js 4.x · pdf.js 4.x · FileReader API · Canvas API</p>
+      <p style="color:#94a3b8">标准: GB/T 32150-2025 · ISO 14067 · CBAM（欧盟碳关税基础）</p>
+    </div>
+  </div>
+</div>
+</main>
+<footer>🌍 CarbonScope v4 · <a href="https://github.com/ak111nice/carbonscope" target="_blank" style="color:var(--accent)">GitHub</a> · 因子库JSON · 配额盈亏 · PDF解析 · IoT采集 · 碳足迹 · GB/T 32150 · ISO 14067</footer>
+
+<script src="data/chart.min.js"></script>
+<script src="data/pdf.min.js"></script>
+<script>
+// ====================== 数据层 ======================
+let EMISSION_FACTORS={"电网电力":{unit:"tCO2/MWh",factor:0.5810,scope:"Scope 2"},"天然气":{unit:"tCO2/万m³",factor:21.62,scope:"Scope 1"},"烟煤":{unit:"tCO2/吨",factor:2.53,scope:"Scope 1"},"柴油":{unit:"tCO2/吨",factor:3.16,scope:"Scope 1"},"汽油":{unit:"tCO2/吨",factor:2.99,scope:"Scope 1"},"液化石油气":{unit:"tCO2/吨",factor:3.17,scope:"Scope 1"},"水泥熟料":{unit:"tCO2/吨熟料",factor:0.535,scope:"Scope 1"},"钢铁(吨钢)":{unit:"tCO2/吨钢",factor:1.80,scope:"Scope 1"}};
+let MATERIAL_FACTORS={"钢材":2.3,"铝材":11.5,"铜":5.8,"塑料":3.1,"玻璃":1.2,"水泥":0.9,"木材":0.3,"纸板":0.8,"硅":45,"锂电池(kg)":120,"芯片(kg)":2000};
+let TRANSPORT_FACTORS={"海运":0.015,"铁路":0.025,"公路":0.12,"空运":0.60};
+let currentData=[];
+let FACTOR_META={};
+
+// Try loading factors from JSON
+fetch('data/factors.json').then(r=>r.json()).then(d=>{
+  FACTOR_META=d.factors||{};
+  if(d.factors){for(let[k,v] of Object.entries(d.factors))EMISSION_FACTORS[k]={unit:v.unit,factor:v.value,scope:v.scope||"Scope 1"};}
+  if(d.materials)MATERIAL_FACTORS=Object.fromEntries(Object.entries(d.materials).map(([k,v])=>[k,v.value]));
+  if(d.transport)TRANSPORT_FACTORS=Object.fromEntries(Object.entries(d.transport).map(([k,v])=>[k,v.value]));
+  if(window._lr)runCalc();
+}).catch(()=>{});
+
+// ====================== Tab switching ======================
+document.querySelectorAll('nav button').forEach(btn=>{btn.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  if(btn.dataset.tab==='report')showReport();
+}});
+
+// ====================== CSV & 核算 ======================
+function handleCSV(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{const lines=ev.target.result.trim().split('\n');currentData=lines.slice(1).filter(l=>l.trim()).map(l=>{const c=l.split(',');return{日期:c[0],部门:c[1],能源类型:c[2],活动数据:parseFloat(c[3]),数据单位:c[4]}});document.getElementById('csvPreview').textContent='✅ '+currentData.length+'条';runCalc()};r.readAsText(f)}
+function loadDemo(){currentData=[{日期:"2025-01",部门:"生产车间",能源类型:"电网电力",活动数据:1200,数据单位:"MWh"},{日期:"2025-01",部门:"生产车间",能源类型:"天然气",活动数据:8.5,数据单位:"万m³"},{日期:"2025-01",部门:"生产车间",能源类型:"烟煤",活动数据:45,数据单位:"吨"},{日期:"2025-01",部门:"办公楼",能源类型:"电网电力",活动数据:300,数据单位:"MWh"},{日期:"2025-02",部门:"生产车间",能源类型:"电网电力",活动数据:1150,数据单位:"MWh"},{日期:"2025-02",部门:"生产车间",能源类型:"天然气",活动数据:9.1,数据单位:"万m³"},{日期:"2025-02",部门:"生产车间",能源类型:"烟煤",活动数据:42,数据单位:"吨"},{日期:"2025-02",部门:"办公楼",能源类型:"电网电力",活动数据:280,数据单位:"MWh"},{日期:"2025-02",部门:"运输车队",能源类型:"柴油",活动数据:3.5,数据单位:"吨"},{日期:"2025-03",部门:"生产车间",能源类型:"电网电力",活动数据:1300,数据单位:"MWh"},{日期:"2025-03",部门:"生产车间",能源类型:"天然气",活动数据:7.8,数据单位:"万m³"},{日期:"2025-03",部门:"生产车间",能源类型:"烟煤",活动数据:48,数据单位:"吨"},{日期:"2025-03",部门:"办公楼",能源类型:"电网电力",活动数据:310,数据单位:"MWh"},{日期:"2025-03",部门:"运输车队",能源类型:"柴油",活动数据:4.2,数据单位:"吨"},{日期:"2025-03",部门:"运输车队",能源类型:"汽油",活动数据:1.8,数据单位:"吨"}];document.getElementById('csvPreview').textContent='✅ 演示 '+currentData.length+'条';runCalc()}
+function runCalc(){if(!currentData.length)return;let s1=0,s2=0;const results=currentData.map(r=>{const info=EMISSION_FACTORS[r["能源类型"]];if(!info)return null;const e=r["活动数据"]*info.factor;if(info.scope==="Scope 2")s2+=e;else s1+=e;return{...r,排放因子:info.factor,碳排放tCO2:Math.round(e*1000)/1000,排放范围:info.scope}}).filter(Boolean);const total=s1+s2;document.getElementById('calcResults').style.display='block';document.getElementById('metrics').innerHTML='<div class="metric"><div class="value" style="color:#ef4444">'+s1.toFixed(1)+'</div><div class="label">🔴 Scope 1 tCO2</div></div><div class="metric"><div class="value" style="color:#f59e0b">'+s2.toFixed(1)+'</div><div class="label">🟡 Scope 2 tCO2</div></div><div class="metric"><div class="value" style="color:#10b981">'+total.toFixed(1)+'</div><div class="label">🌍 总排放 tCO2</div></div>';const byFuel={};results.forEach(r=>{byFuel[r["能源类型"]]=(byFuel[r["能源类型"]]||0)+r.碳排放tCO2});const kl=Object.keys(byFuel).sort((a,b)=>byFuel[a]-byFuel[b]);renderChart('chartFuel','bar',kl,kl.map(k=>byFuel[k]),'排放结构');renderChart('chartScope','doughnut',['Scope 1','Scope 2'],[s1,s2],'Scope占比',['#ef4444','#f59e0b']);const alerts=detectAnomalies(results);const recs=generateRecs(byFuel,total);let ahtml='<h3>🤖 AI 分析</h3>';if(alerts.length)alerts.forEach(a=>ahtml+='<div class="alert danger">'+a.msg+'</div>');else ahtml+='<div class="alert info">✅ 无异常</div>';recs.forEach(r=>ahtml+='<div class="alert info">'+r+'</div>');document.getElementById('aiAlerts').innerHTML=ahtml;window._lr=results;window._s1=s1;window._s2=s2}
+function detectAnomalies(r){let a=[];const g={};r.forEach(x=>{const k=x["能源类型"];if(!g[k])g[k]=[];g[k].push(x.碳排放tCO2)});for(let[k,v]of Object.entries(g)){if(v.length<3)continue;const m=v.reduce((a,b)=>a+b,0)/v.length;const s=Math.sqrt(v.reduce((a,b)=>a+Math.pow(b-m,2),0)/v.length);if(s===0)continue;v.forEach((x,i)=>{const z=(x-m)/s;if(Math.abs(z)>2)a.push({msg:'🔴 '+k+' '+x.toFixed(1)+'tCO2 Z='+z.toFixed(1)})})}return a}
+function generateRecs(bf,t){const r=[];const e=Object.entries(bf).sort((a,b)=>b[1]-a[1]);if(!e.length)return r;const[tf,tv]=e[0];const p=tv/t*100;if(tf==="电网电力"&&p>50)r.push('🎯 电网电力'+p.toFixed(0)+'%: ①光伏 ②绿证 ③排查高耗能设备');else if(tf==="天然气")r.push('🎯 天然气'+p.toFixed(0)+'%: 评估电锅炉替代+余热回收');else if(tf==="烟煤")r.push('🎯 烟煤'+p.toFixed(0)+'%: 天然气替代或高效煤粉锅炉');if(t>26000)r.push("⚖️ >26,000t 强制纳入全国碳市场");else if(t>5000)r.push("📈 5,000-26,000t 预计2027扩容纳入");return r}
+const chartInstances={};
+function renderChart(id,type,labels,data,title,colors){try{const ctx=document.getElementById(id);if(!ctx)return;const c=ctx.getContext('2d');if(chartInstances[id])chartInstances[id].destroy();chartInstances[id]=new Chart(c,{type,data:{labels,datasets:[{label:title,data,backgroundColor:colors||['#22d3ee','#818cf8','#f59e0b','#ef4444','#10b981']}]},options:{responsive:true,plugins:{legend:{labels:{color:'#94a3b8'}}}}})}catch(e){var el=document.getElementById(id);if(el){el.style.display='none';var d=document.createElement('div');d.style.padding='10px';d.style.color='#94a3b8';d.textContent='(图表组件未加载,离线模式)';el.parentElement.appendChild(d)}}}
+
+// 产品碳足迹
+function calcProduct(){const name=document.getElementById('prodName').value;const mats=JSON.parse(document.getElementById('prodMats').value);const elec=parseFloat(document.getElementById('prodElec').value)||0;const trans=document.getElementById('prodTrans').value;const dist=parseFloat(document.getElementById('prodDist').value)||0;const weight=parseFloat(document.getElementById('prodWeight').value)||0;const waste=parseFloat(document.getElementById('prodWaste').value)||0;let mc=0,det=[];for(let[m,kg]of Object.entries(mats)){const f=MATERIAL_FACTORS[m]||1;const c=kg*f/1000;mc+=c;det.push(m+': '+kg+'kg×'+f+'='+c.toFixed(4)+'tCO2')}const ec=elec*0.581;const tf=TRANSPORT_FACTORS[trans]||0.12;const tc=dist*weight*tf/1000;const total=(mc+ec+tc)*(1+waste/100);document.getElementById('productResult').innerHTML='<div class="grid3"><div class="metric"><div class="value" style="color:#22d3ee">'+total.toFixed(4)+'</div><div class="label">总碳足迹tCO2/单位</div></div><div class="metric"><div class="value" style="color:#818cf8">'+mc.toFixed(4)+'</div><div class="label">原材料tCO2</div></div><div class="metric"><div class="value" style="color:#f59e0b">'+(ec+tc).toFixed(4)+'</div><div class="label">制造+运输tCO2</div></div></div><div class="preview" style="margin-top:10px">'+det.join('\n')+'\n\n电力:'+elec+'MWh→'+ec.toFixed(4)+'tCO2\n运输('+trans+'):'+dist+'km×'+weight+'t→'+tc.toFixed(4)+'tCO2\n废品率:'+waste+'%\n总:'+total.toFixed(4)+'tCO2</div>'}
+
+// 配额盈亏
+function syncQuota(){if(window._s1!==undefined){document.getElementById('quotaTotal').value=(window._s1+window._s2).toFixed(1)}else{alert('请先加载核算数据')}}
+function simQuota(){const free=parseFloat(document.getElementById('quotaFree').value)||0;const price=parseFloat(document.getElementById('quotaPrice').value)||0;const total=parseFloat(document.getElementById('quotaTotal').value)||(window._s1+window._s2)||0;const diff=free-total;const cost=diff>=0?0:Math.abs(diff)*price;const cls=diff>=0?'ok':'danger';const icon=diff>=0?'🟢 盈余':'🔴 缺口';document.getElementById('quotaResult').innerHTML='<div class="grid3"><div class="metric"><div class="value">'+free.toFixed(1)+'</div><div class="label">免费配额 tCO2</div></div><div class="metric"><div class="value">'+total.toFixed(1)+'</div><div class="label">实际排放 tCO2</div></div><div class="metric"><div class="value" style="color:var(--'+cls+')">'+diff.toFixed(1)+'</div><div class="label">'+icon+' 配额差 tCO2</div></div></div><div class="alert '+(diff>=0?'info':'danger')+'" style="margin-top:10px">'+(diff>=0?'✅ 配额盈余 '+diff.toFixed(1)+' tCO2，可出售获利约 '+(diff*price).toFixed(0)+' 元（按'+price+'元/吨）':'⚠️ 配额缺口 '+Math.abs(diff).toFixed(1)+' tCO2，需购买履约，预计花费 '+cost.toFixed(0)+' 元（按'+price+'元/吨）')+'</div>'}
+
+// PDF 解析（前端离线版，不需要启动 Python 服务）
+async function handlePDF(e){
+  const file=e.target.files[0];if(!file)return;
+  const progress=document.getElementById('pdfProgress');
+  document.getElementById('pdfReview').style.display='none';
+  document.getElementById('pdfResult').innerHTML='';
+  if(file.size>10*1024*1024){
+    progress.textContent='❌ PDF 文件超过 10MB，建议先压缩或只上传账单页';
+    e.target.value='';
+    return;
+  }
+  if(!window.pdfjsLib){progress.textContent='❌ PDF 组件未加载，请确认 data/pdf.min.js 存在';return}
+  try{
+    progress.textContent='解析中（本地离线解析），请稍等...';
+    const buffer=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:buffer,disableWorker:true}).promise;
+    let text='';
+    const pageCount=Math.min(pdf.numPages,10);
+    for(let p=1;p<=pageCount;p++){
+      progress.textContent='正在读取第 '+p+' / '+pageCount+' 页...';
+      const page=await pdf.getPage(p);
+      const content=await page.getTextContent();
+      text+=content.items.map(item=>item.str).join(' ')+'\n';
+    }
+    const rows=parseEnergyText(text);
+    window._pdfRows=rows;
+    if(!rows.length){progress.textContent='⚠️ 没提取到能源数据，可能是扫描版PDF或账单格式不匹配';return}
+    progress.textContent='✅ 提取 '+rows.length+' 条，请确认：';
+    let tbody=document.getElementById('pdfReviewTable').querySelector('tbody');tbody.innerHTML='';
+    rows.forEach((r,i)=>{let tr=document.createElement('tr');tr.innerHTML='<td><input type="checkbox" checked data-idx="'+i+'" onchange="window._pdfCheck['+i+']=this.checked" style="width:auto"></td><td>'+r.能源类型+'</td><td>'+r.活动数据+'</td><td>'+r.数据单位+'</td><td style="color:#94a3b8;font-size:.75rem">'+r.来源+'</td>';tbody.appendChild(tr)});
+    window._pdfCheck=rows.map(()=>true);
+    document.getElementById('pdfReview').style.display='block';
+  }catch(err){
+    progress.textContent='❌ PDF 解析失败：请确认不是加密 PDF，扫描版需要 OCR 后再上传';
+  }
+}
+function parseEnergyText(text){
+  const patterns=[
+    {fuel:'电网电力',re:/(?:用电量|电力|电费|用电|Electricity\s*Consumption|Electricity|Consumption|Power)[\s:：，,。=-]*(\d+\.?\d*)\s*(MWh|兆瓦时|万度|kWh|千瓦时|度)/ig,unit:'MWh'},
+    {fuel:'天然气',re:/(?:天然气|用气|燃气|气费|Natural\s*Gas|Gas\s*Usage)[\s:：，,。=-]*(\d+\.?\d*)\s*(万m³|万立方米|m³|立方米|立方)/ig,unit:'万m³'},
+    {fuel:'烟煤',re:/(?:煤炭|用煤|燃煤|烟煤|原煤|Coal\s*Consumption|Coal)[\s:：，,。=-]*(\d+\.?\d*)\s*(万吨|吨|t|tons)/ig,unit:'吨'},
+    {fuel:'柴油',re:/(?:柴油|用油|燃油|Diesel\s*Fuel|Diesel)[\s:：，,。=-]*(\d+\.?\d*)\s*(吨|t|tons|升|L)/ig,unit:'吨'},
+    {fuel:'汽油',re:/(?:汽油|Gasoline)[\s:：，,。=-]*(\d+\.?\d*)\s*(吨|t|tons|升|L)/ig,unit:'吨'}
+  ];
+  const convert={'kWh':['MWh',0.001],'千瓦时':['MWh',0.001],'度':['MWh',0.001],'万度':['MWh',10],'m³':['万m³',0.0001],'立方米':['万m³',0.0001],'立方':['万m³',0.0001],'万吨':['吨',10000],'升':['吨',0.00085],'L':['吨',0.00085],'t':['吨',1],'tons':['吨',1]};
+  const rows=[];
+  patterns.forEach(p=>{let m;while((m=p.re.exec(text))!==null){let val=parseFloat(m[1]);let unit=m[2]||p.unit;const cv=convert[unit]||[unit,1];val=Math.round(val*cv[1]*1000)/1000;if(!rows.some(r=>r.能源类型===p.fuel&&Math.abs(r.活动数据-val)<0.01)){rows.push({能源类型:p.fuel,活动数据:val,数据单位:cv[0],来源:'前端PDF提取'});}}});
+  return rows;
+}
+function pdfConfirm(){if(!window._pdfRows)return;const selected=window._pdfRows.filter((r,i)=>window._pdfCheck[i]);if(!selected.length){alert('未选择任何数据');return}selected.forEach(r=>{r.日期=new Date().toISOString().slice(0,7);r.部门='PDF提取'});currentData=selected;runCalc();document.getElementById('pdfReview').style.display='none';document.getElementById('pdfResult').innerHTML='<div class="alert info">✅ 已导入 '+selected.length+' 条数据，核算结果已更新</div>'}
+function pdfCancel(){document.getElementById('pdfReview').style.display='none';document.getElementById('pdfProgress').textContent='已取消';document.getElementById('pdfResult').innerHTML='';window._pdfRows=null}
+
+// IoT 仪表
+const IOT_METERS=[{name:"主变电表",fuel:"电网电力",min:0,max:65535,unit:"MWh"},{name:"车间1电表",fuel:"电网电力",min:0,max:65535,unit:"MWh"},{name:"车间2电表",fuel:"电网电力",min:0,max:65535,unit:"MWh"},{name:"天然气总表",fuel:"天然气",min:0,max:100,unit:"万m³"},{name:"锅炉燃气表",fuel:"天然气",min:0,max:50,unit:"万m³"},{name:"煤仓皮带秤",fuel:"烟煤",min:0,max:2000,unit:"吨"},{name:"柴油地磅",fuel:"柴油",min:0,max:200,unit:"吨"}];let iotValues={};IOT_METERS.forEach(m=>iotValues[m.name]=m.min+m.max*0.1);
+function iotRefresh(){document.getElementById('iotStatus').textContent='刷新中...';let html='';IOT_METERS.forEach(m=>{const online=Math.random()>0.1;const noise=0.95+Math.random()*0.1;iotValues[m.name]*=noise;const val=iotValues[m.name].toFixed(1);const color=online?'#10b981':'#ef4444';const status=online?'🟢在线':'🔴离线';const pct=Math.min(100,((iotValues[m.name]-m.min)/(m.max-m.min)*100)).toFixed(0);html+='<div class="card" style="text-align:center"><div style="font-size:.85rem;color:#94a3b8">'+status+' '+m.name+'</div><div style="font-size:1.4rem;font-weight:700;color:'+color+';margin:6px 0">'+val+' '+m.unit+'</div><div style="background:var(--bg);border-radius:4px;height:6px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+color+';border-radius:4px"></div></div><div style="font-size:.65rem;color:#64748b;margin-top:2px">范围:'+m.min+'-'+m.max+' '+m.unit+'</div></div>'});document.getElementById('iotGauges').innerHTML=html;document.getElementById('iotStatus').textContent=new Date().toLocaleTimeString()}
+function iotCollect(){let energy={};IOT_METERS.forEach(m=>{const online=Math.random()>0.1;if(!online)return;const noise=0.95+Math.random()*0.1;iotValues[m.name]*=noise;energy[m.fuel]=(energy[m.fuel]||0)+iotValues[m.name]});const rows=[];for(let[fuel,val]of Object.entries(energy)){const u=IOT_METERS.find(m=>m.fuel===fuel);rows.push({日期:new Date().toISOString().slice(0,7),部门:'IoT采集',能源类型:fuel,活动数据:Math.round(val*100)/100,数据单位:u?u.unit:'未知'})}currentData=rows;runCalc();document.getElementById('iotEnergyResult').innerHTML='<div class="preview">✅ 采集到 '+rows.length+' 种能源\n'+rows.map(r=>r.能源类型+': '+r.活动数据+' '+r.数据单位).join('\n')+'</div>'}
+function iotLoadCSV(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{const lines=ev.target.result.trim().split('\n');const rows=lines.slice(1).filter(l=>l.trim()).map(l=>{const c=l.split(',');return{日期:c[0],部门:c[1],能源类型:c[2],活动数据:parseFloat(c[3]),数据单位:c[4]}});document.getElementById('iotStatus').textContent='✅ 从采集器CSV加载 '+rows.length+' 条';currentData=rows;runCalc()};reader.readAsText(file)}
+
+// 报告
+function showReport(){if(!window._lr){loadDemo()}const r=window._lr;const s1=window._s1,s2=window._s2;const t=s1+s2;const bf={};r.forEach(x=>{bf[x["能源类型"]]=(bf[x["能源类型"]]||0)+x.碳排放tCO2});const alerts=detectAnomalies(r);const recs=generateRecs(bf,t);let txt='============================================================\n       企业温室气体排放核算报告\n       标准: GB/T 32150-2025\n       '+new Date().toLocaleString()+'\n============================================================\n\n一、排放总量\n  Scope1: '+s1.toFixed(3)+'tCO2e\n  Scope2: '+s2.toFixed(3)+'tCO2e\n  总计: '+t.toFixed(3)+'tCO2e\n\n二、排放结构\n';for(let[k,v]of Object.entries(bf).sort((a,b)=>b[1]-a[1]))txt+='  '+k+': '+v.toFixed(3)+'t ('+(v/t*100).toFixed(1)+'%)\n';txt+='\n三、AI 分析\n'+(alerts.length?alerts.map(a=>'  '+a.msg).join('\n'):'  ✅ 无异常')+'\n\n四、减排建议\n'+recs.map(r=>'  '+r).join('\n')+'\n';document.getElementById('reportContent').textContent=txt;window._rt=txt;return txt}
+function downloadReport(){const txt=window._rt||showReport();if(!txt){alert('没有可下载的报告');return}const blob=new Blob(['\ufeff'+txt],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='carbon_report_'+new Date().toISOString().slice(0,10)+'.txt';a.style.display='none';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove()},1000);document.getElementById('pdfResult').innerHTML=''}
+
+// ====================== 面试版增强：质量、追溯、管理结论 ======================
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function unitMatches(fuel,unit){const u=String(unit||'').trim();const map={"电网电力":["MWh","kWh","千瓦时","度","万度"],"天然气":["万m³","万立方米","m³","立方米","立方"],"烟煤":["吨","t","万吨"],"柴油":["吨","t","升","L"],"汽油":["吨","t","升","L"],"液化石油气":["吨","t","kg","千克","公斤"]};return !u||!map[fuel]||map[fuel].includes(u)}
+function validateData(rows){
+  const errors=[],warnings=[],passed=[],validRows=[],seen={};
+  rows.forEach((raw,i)=>{
+    const row={日期:raw.日期||'',部门:raw.部门||'',能源类型:raw.能源类型||'',活动数据:Number(raw.活动数据),数据单位:raw.数据单位||'',来源:raw.来源||'手工/未知',_row:i+1};
+    const label='第'+(i+1)+'行';
+    let hasError=false;
+    if(!row.能源类型){errors.push(label+' 缺少能源类型');hasError=true}
+    if(!Number.isFinite(row.活动数据)){errors.push(label+' 活动数据不是有效数字');hasError=true}
+    if(row.能源类型&&!EMISSION_FACTORS[row.能源类型]){errors.push(label+' 未找到排放因子: '+row.能源类型);hasError=true}
+    if(Number.isFinite(row.活动数据)&&row.活动数据<0){errors.push(label+' 活动数据为负数，需要核对原始凭证');hasError=true}
+    if(!row.日期)warnings.push(label+' 缺少日期，报告追溯性较弱');
+    if(!row.部门)warnings.push(label+' 缺少部门，无法定位责任单元');
+    if(Number.isFinite(row.活动数据)&&row.活动数据===0)warnings.push(label+' 活动数据为 0，建议确认是否漏填');
+    if(row.能源类型&&row.数据单位&&!unitMatches(row.能源类型,row.数据单位))warnings.push(label+' 单位 '+row.数据单位+' 与 '+row.能源类型+' 常用单位不匹配');
+    const key=[row.日期,row.部门,row.能源类型].join('|');
+    if(row.日期&&row.部门&&row.能源类型){if(seen[key])warnings.push(label+' 与第 '+seen[key]+' 行疑似重复: '+key);else seen[key]=i+1}
+    if(!hasError){validRows.push(row);passed.push(label+' 通过基础校验')}
+  });
+  const score=Math.max(0,Math.round(100-errors.length*15-warnings.length*5));
+  return{errors,warnings,passed,validRows,score,total:rows.length}
+}
+function renderQualityPanel(v){
+  const cls=v.errors.length?'danger':(v.warnings.length?'warn':'ok');
+  let html='<h3>🧪 数据质量检查 <span class="badge '+cls+'">'+v.score+'/100</span></h3>';
+  html+='<div class="section-note">企业碳盘查最怕数据源混乱。这里先做基础 validation，错误数据不参与核算，警告数据参与但提示人工复核。</div>';
+  html+='<div class="alert '+(v.errors.length?'danger':'info')+'">有效记录 '+v.validRows.length+' / '+v.total+'；错误 '+v.errors.length+'；警告 '+v.warnings.length+'</div>';
+  [...v.errors.map(x=>'❌ '+x),...v.warnings.slice(0,6).map(x=>'⚠️ '+x)].forEach(x=>html+='<div class="alert '+(x[0]==='❌'?'danger':'warn')+'">'+esc(x)+'</div>');
+  if(!v.errors.length&&!v.warnings.length)html+='<div class="alert info">✅ 数据字段、单位、重复项检查均通过。</div>';
+  if(v.warnings.length>6)html+='<div class="section-note">还有 '+(v.warnings.length-6)+' 条警告，已在报告中汇总。</div>';
+  document.getElementById('qualityPanel').innerHTML=html;
+}
+function renderFactorPanel(){
+  const entries=Object.entries(EMISSION_FACTORS);
+  let html='<h3>📚 排放因子追溯</h3><div class="section-note">因子独立放在 factors.json，方便后续按地区、年份和来源维护，避免写死在公式里。</div><table><thead><tr><th>能源</th><th>因子</th><th>Scope</th><th>说明/更新时间</th></tr></thead><tbody>';
+  entries.forEach(([k,v])=>{const meta=FACTOR_META[k]||{};html+='<tr><td>'+esc(k)+'</td><td>'+esc(v.factor)+' '+esc(v.unit)+'</td><td>'+esc(v.scope)+'</td><td>'+esc(meta.description||'本地因子库')+'<br><span style="color:#64748b">'+esc(meta.updated||'未标注')+'</span></td></tr>'});
+  html+='</tbody></table>';
+  document.getElementById('factorPanel').innerHTML=html;
+}
+function buildManagementSummary(results,validation){
+  const total=results.reduce((a,r)=>a+r.碳排放tCO2,0),s1=results.filter(r=>r.排放范围!=="Scope 2").reduce((a,r)=>a+r.碳排放tCO2,0),s2=total-s1;
+  const byFuel={};results.forEach(r=>byFuel[r["能源类型"]]=(byFuel[r["能源类型"]]||0)+r.碳排放tCO2);
+  const top=Object.entries(byFuel).sort((a,b)=>b[1]-a[1])[0]||['无',0];
+  const quota=parseFloat(document.getElementById('quotaFree').value)||3500,price=parseFloat(document.getElementById('quotaPrice').value)||85;
+  const gap=total-quota;
+  const rec=generateRecs(byFuel,total)[0]||'建议继续补充真实账单和仪表数据，提高碳盘查完整性。';
+  return{total,s1,s2,topFuel:top[0],topValue:top[1],topPct:total?top[1]/total*100:0,quotaGap:gap,quotaCost:Math.max(0,gap*price),quality:validation.score,conclusion:rec.replace(/^🎯\s*/,'')};
+}
+function renderManagementPanel(m){
+  const quotaText=m.quotaGap>0?'缺口 '+m.quotaGap.toFixed(1)+' tCO2，预计履约成本 '+m.quotaCost.toFixed(0)+' 元':'盈余 '+Math.abs(m.quotaGap).toFixed(1)+' tCO2';
+  document.getElementById('managementPanel').innerHTML='<h3>🏢 企业管理看板</h3><div class="grid3"><div class="metric"><div class="value">'+m.topFuel+'</div><div class="label">最大排放源 '+m.topPct.toFixed(1)+'%</div></div><div class="metric"><div class="value" style="color:'+(m.quotaGap>0?'#ef4444':'#10b981')+'">'+(m.quotaGap>0?'有缺口':'有盈余')+'</div><div class="label">'+quotaText+'</div></div><div class="metric"><div class="value" style="color:'+(m.quality>=80?'#10b981':m.quality>=60?'#f59e0b':'#ef4444')+'">'+m.quality+'</div><div class="label">数据质量评分</div></div></div><div class="alert info">管理结论：'+esc(m.conclusion)+'</div>';
+}
+function renderDataAuditPanel(results){
+  let html='<h3>📋 核算明细与来源</h3><table><thead><tr><th>日期</th><th>部门</th><th>能源</th><th>活动数据</th><th>因子</th><th>排放</th><th>来源</th></tr></thead><tbody>';
+  results.slice(0,20).forEach(r=>{html+='<tr><td>'+esc(r.日期)+'</td><td>'+esc(r.部门)+'</td><td>'+esc(r.能源类型)+'</td><td>'+esc(r.活动数据)+' '+esc(r.数据单位)+'</td><td>'+esc(r.排放因子)+'</td><td>'+r.碳排放tCO2.toFixed(3)+'</td><td><span class="badge">'+esc(r.来源)+'</span></td></tr>'});
+  html+='</tbody></table>';
+  if(results.length>20)html+='<div class="section-note">仅展示前 20 条，完整汇总进入 TXT 报告。</div>';
+  document.getElementById('dataAuditPanel').innerHTML=html;
+}
+function parseCsvText(text,source){
+  const lines=text.trim().split(/\r?\n/).filter(l=>l.trim());
+  return lines.slice(1).map(l=>{const c=l.split(',');return{日期:c[0]||'',部门:c[1]||'',能源类型:c[2]||'',活动数据:parseFloat(c[3]),数据单位:c[4]||'',来源:source}});
+}
+function handleCSV(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{currentData=parseCsvText(ev.target.result,'CSV导入');document.getElementById('csvPreview').textContent='✅ CSV导入 '+currentData.length+'条';runCalc()};r.readAsText(f,'utf-8')}
+function loadDemo(){currentData=[{日期:"2025-01",部门:"生产车间",能源类型:"电网电力",活动数据:1200,数据单位:"MWh",来源:"演示数据"},{日期:"2025-01",部门:"生产车间",能源类型:"天然气",活动数据:8.5,数据单位:"万m³",来源:"演示数据"},{日期:"2025-01",部门:"生产车间",能源类型:"烟煤",活动数据:45,数据单位:"吨",来源:"演示数据"},{日期:"2025-01",部门:"办公楼",能源类型:"电网电力",活动数据:300,数据单位:"MWh",来源:"演示数据"},{日期:"2025-02",部门:"生产车间",能源类型:"电网电力",活动数据:1150,数据单位:"MWh",来源:"演示数据"},{日期:"2025-02",部门:"生产车间",能源类型:"天然气",活动数据:9.1,数据单位:"万m³",来源:"演示数据"},{日期:"2025-02",部门:"生产车间",能源类型:"烟煤",活动数据:42,数据单位:"吨",来源:"演示数据"},{日期:"2025-02",部门:"运输车队",能源类型:"柴油",活动数据:3.5,数据单位:"吨",来源:"演示数据"},{日期:"2025-03",部门:"生产车间",能源类型:"电网电力",活动数据:1300,数据单位:"MWh",来源:"演示数据"},{日期:"2025-03",部门:"生产车间",能源类型:"天然气",活动数据:7.8,数据单位:"万m³",来源:"演示数据"},{日期:"2025-03",部门:"生产车间",能源类型:"烟煤",活动数据:48,数据单位:"吨",来源:"演示数据"},{日期:"2025-03",部门:"运输车队",能源类型:"柴油",活动数据:4.2,数据单位:"吨",来源:"演示数据"},{日期:"2025-03",部门:"运输车队",能源类型:"汽油",活动数据:1.8,数据单位:"吨",来源:"演示数据"}];document.getElementById('csvPreview').textContent='✅ 演示 '+currentData.length+'条';runCalc()}
+function runCalc(){
+  if(!currentData.length)return;
+  const validation=validateData(currentData),rows=validation.validRows;
+  let s1=0,s2=0;
+  const results=rows.map(r=>{const info=EMISSION_FACTORS[r["能源类型"]];const e=r["活动数据"]*info.factor;if(info.scope==="Scope 2")s2+=e;else s1+=e;return{...r,排放因子:info.factor,碳排放tCO2:Math.round(e*1000)/1000,排放范围:info.scope}}).filter(Boolean);
+  const total=s1+s2;document.getElementById('calcResults').style.display='block';
+  document.getElementById('metrics').innerHTML='<div class="metric"><div class="value" style="color:#ef4444">'+s1.toFixed(1)+'</div><div class="label">Scope 1 直接排放 tCO2</div></div><div class="metric"><div class="value" style="color:#f59e0b">'+s2.toFixed(1)+'</div><div class="label">Scope 2 间接排放 tCO2</div></div><div class="metric"><div class="value" style="color:#10b981">'+total.toFixed(1)+'</div><div class="label">总排放 tCO2e</div></div>';
+  const byFuel={};results.forEach(r=>byFuel[r["能源类型"]]=(byFuel[r["能源类型"]]||0)+r.碳排放tCO2);
+  const labels=Object.keys(byFuel).sort((a,b)=>byFuel[a]-byFuel[b]);
+  renderChart('chartFuel','bar',labels,labels.map(k=>byFuel[k]),'排放结构');
+  renderChart('chartScope','doughnut',['Scope 1','Scope 2'],[s1,s2],'Scope占比',['#ef4444','#f59e0b']);
+  const alerts=detectAnomalies(results),recs=generateRecs(byFuel,total);
+  let ahtml='<h3>🤖 AI 分析</h3>';if(alerts.length)alerts.forEach(a=>ahtml+='<div class="alert danger">'+a.msg+'</div>');else ahtml+='<div class="alert info">✅ 未发现明显异常排放波动。</div>';recs.forEach(r=>ahtml+='<div class="alert info">'+r+'</div>');document.getElementById('aiAlerts').innerHTML=ahtml;
+  renderQualityPanel(validation);renderFactorPanel();renderDataAuditPanel(results);renderManagementPanel(buildManagementSummary(results,validation));
+  window._lr=results;window._s1=s1;window._s2=s2;window._validation=validation;window._byFuel=byFuel;window._rt=null;
+}
+function generateRecs(bf,t){const r=[];const e=Object.entries(bf).sort((a,b)=>b[1]-a[1]);if(!e.length)return ['请先导入有效能源数据。'];const[tf,tv]=e[0];const p=t?tv/t*100:0;if(tf==="电网电力")r.push('🎯 电网电力占比 '+p.toFixed(0)+'%：优先评估绿电采购、屋顶光伏、空压机/制冷机等高耗能设备能效排查。');else if(tf==="天然气")r.push('🎯 天然气占比 '+p.toFixed(0)+'%：建议检查锅炉效率、余热回收和电气化替代空间。');else if(tf==="烟煤")r.push('🎯 煤炭占比 '+p.toFixed(0)+'%：建议优先评估燃料替代、锅炉改造和重点用煤工序减排。');else if(tf==="柴油"||tf==="汽油")r.push('🎯 油品占比 '+p.toFixed(0)+'%：建议优化物流路线，评估电动叉车/新能源车辆替代。');else r.push('🎯 '+tf+' 是最大排放源，建议先核对活动数据和可替代方案。');if(t>26000)r.push("⚖️ 年化排放超过 26,000t，可能触发全国碳市场重点排放单位管理要求。");else if(t>5000)r.push("📈 年化排放在 5,000-26,000t 区间，建议提前建立月度碳数据台账。");return r}
+function pdfConfirm(){if(!window._pdfRows)return;const selected=window._pdfRows.filter((r,i)=>window._pdfCheck[i]);if(!selected.length){alert('未选择任何数据');return}selected.forEach(r=>{r.日期=new Date().toISOString().slice(0,7);r.部门='PDF提取';r.来源='PDF提取'});currentData=selected;runCalc();document.getElementById('pdfReview').style.display='none';document.getElementById('pdfResult').innerHTML='<div class="alert info">✅ 已导入 '+selected.length+' 条数据，核算结果已更新</div>'}
+function iotCollect(){let energy={};IOT_METERS.forEach(m=>{const online=Math.random()>0.1;if(!online)return;const noise=0.95+Math.random()*0.1;iotValues[m.name]*=noise;energy[m.fuel]=(energy[m.fuel]||0)+iotValues[m.name]});currentData=Object.entries(energy).map(([fuel,val])=>{const u=IOT_METERS.find(m=>m.fuel===fuel);return{日期:new Date().toISOString().slice(0,7),部门:'IoT采集',能源类型:fuel,活动数据:Math.round(val*100)/100,数据单位:u?u.unit:'未知',来源:'IoT采集'}});runCalc();document.getElementById('iotEnergyResult').innerHTML='<div class="preview">✅ 采集到 '+currentData.length+' 种能源\n'+currentData.map(r=>r.能源类型+': '+r.活动数据+' '+r.数据单位).join('\n')+'</div>'}
+function iotLoadCSV(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{currentData=parseCsvText(ev.target.result,'IoT采集CSV');document.getElementById('iotStatus').textContent='✅ 从采集器CSV加载 '+currentData.length+' 条';runCalc()};reader.readAsText(file,'utf-8')}
+function generateEnhancedReport(){
+  if(!window._lr){loadDemo()}const r=window._lr,v=window._validation||validateData(currentData),s1=window._s1||0,s2=window._s2||0,t=s1+s2,bf=window._byFuel||{};const m=buildManagementSummary(r,v),recs=generateRecs(bf,t),sources=[...new Set(r.map(x=>x.来源||'未知'))].join('、');
+  let txt='============================================================\nCarbonScope 企业碳盘查面试版报告\n标准参考: GB/T 32150 / ISO 14067\n生成时间: '+new Date().toLocaleString()+'\n============================================================\n\n一、项目概览\n本系统面向制造企业碳管理场景，覆盖能源数据导入、数据质量检查、排放核算、因子追溯、配额风险和减排建议。\n数据来源: '+sources+'\n管理结论: '+m.conclusion+'\n\n二、排放总量\nScope 1 直接排放: '+s1.toFixed(3)+' tCO2e\nScope 2 间接排放: '+s2.toFixed(3)+' tCO2e\n总排放: '+t.toFixed(3)+' tCO2e\n最大排放源: '+m.topFuel+'，占比 '+m.topPct.toFixed(1)+'%\n\n三、能源结构\n';
+  Object.entries(bf).sort((a,b)=>b[1]-a[1]).forEach(([k,val])=>txt+='- '+k+': '+val.toFixed(3)+' tCO2e ('+(t?val/t*100:0).toFixed(1)+'%)\n');
+  txt+='\n四、数据质量检查\n数据质量评分: '+v.score+'/100\n有效记录: '+v.validRows.length+'/'+v.total+'；错误: '+v.errors.length+'；警告: '+v.warnings.length+'\n';
+  if(v.errors.length)txt+='错误项:\n'+v.errors.map(x=>'- '+x).join('\n')+'\n';
+  if(v.warnings.length)txt+='警告项:\n'+v.warnings.map(x=>'- '+x).join('\n')+'\n';
+  txt+='\n五、排放因子版本说明\n';
+  Object.entries(EMISSION_FACTORS).forEach(([k,val])=>{const meta=FACTOR_META[k]||{};txt+='- '+k+': '+val.factor+' '+val.unit+'，'+val.scope+'，'+(meta.description||'本地因子库')+'，更新时间: '+(meta.updated||'未标注')+'\n'});
+  txt+='\n六、配额风险\n免费配额: '+(parseFloat(document.getElementById('quotaFree').value)||3500).toFixed(1)+' tCO2\n'+(m.quotaGap>0?'当前存在配额缺口 '+m.quotaGap.toFixed(1)+' tCO2，预计履约成本 '+m.quotaCost.toFixed(0)+' 元。':'当前配额盈余 '+Math.abs(m.quotaGap).toFixed(1)+' tCO2。')+'\n\n七、减排建议\n'+recs.map(x=>'- '+x.replace(/^🎯 |^⚖️ |^📈 /,'')).join('\n')+'\n\n八、审计追溯说明\nPDF/CSV/IoT 数据导入后均保留来源字段；PDF 提取设置人工确认环节，避免账单误读直接进入核算。\n';
+  document.getElementById('reportContent').textContent=txt;window._rt=txt;return txt;
+}
+function showReport(){return generateEnhancedReport()}
+function downloadReport(){const txt=window._rt||generateEnhancedReport();const blob=new Blob(['\ufeff'+txt],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='carbon_report_'+new Date().toISOString().slice(0,10)+'.txt';a.style.display='none';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove()},1000)}
+
+// 启动
+loadDemo();iotRefresh();
+</script>
+</body>
+</html>

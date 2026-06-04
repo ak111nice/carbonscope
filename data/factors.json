@@ -1,0 +1,91 @@
+{
+  "description": "碳排放因子库 — 基于国家发改委《省级温室气体清单编制指南》及生态环境部发布数据",
+  "last_updated": "2026-06-03",
+  "sources": [
+    "国家发改委气候司",
+    "生态环境部应对气候变化司",
+    "省级温室气体清单编制指南"
+  ],
+  "factors": {
+    "电网电力": {
+      "unit": "tCO2/MWh",
+      "value": 0.581,
+      "scope": "Scope 2",
+      "description": "2024年全国电网平均排放因子",
+      "region": "全国",
+      "updated": "2025-12"
+    },
+    "天然气": {
+      "unit": "tCO2/万m³",
+      "value": 21.62,
+      "scope": "Scope 1",
+      "description": "天然气燃烧排放因子",
+      "updated": "2025-12"
+    },
+    "烟煤": {
+      "unit": "tCO2/吨",
+      "value": 2.53,
+      "scope": "Scope 1",
+      "description": "烟煤燃烧排放因子(低位发热量)",
+      "updated": "2025-12"
+    },
+    "柴油": {
+      "unit": "tCO2/吨",
+      "value": 3.16,
+      "scope": "Scope 1",
+      "description": "柴油燃烧排放因子",
+      "updated": "2025-12"
+    },
+    "汽油": {
+      "unit": "tCO2/吨",
+      "value": 2.99,
+      "scope": "Scope 1",
+      "description": "汽油燃烧排放因子",
+      "updated": "2025-12"
+    },
+    "液化石油气": {
+      "unit": "tCO2/吨",
+      "value": 3.17,
+      "scope": "Scope 1",
+      "description": "LPG燃烧排放因子",
+      "updated": "2025-12"
+    },
+    "水泥熟料": {
+      "unit": "tCO2/吨熟料",
+      "value": 0.535,
+      "scope": "Scope 1",
+      "description": "水泥熟料工艺过程排放因子",
+      "updated": "2025-12"
+    },
+    "钢铁(吨钢)": {
+      "unit": "tCO2/吨钢",
+      "value": 1.80,
+      "scope": "Scope 1",
+      "description": "粗钢长流程排放因子（含高炉+转炉）",
+      "updated": "2025-12"
+    }
+  },
+  "materials": {
+    "钢材": {"unit": "kgCO2e/kg", "value": 2.3, "source": "ecoinvent 3.10"},
+    "铝材": {"unit": "kgCO2e/kg", "value": 11.5, "source": "ecoinvent 3.10"},
+    "铜": {"unit": "kgCO2e/kg", "value": 5.8, "source": "ecoinvent 3.10"},
+    "塑料": {"unit": "kgCO2e/kg", "value": 3.1, "source": "ecoinvent 3.10"},
+    "玻璃": {"unit": "kgCO2e/kg", "value": 1.2, "source": "ecoinvent 3.10"},
+    "水泥": {"unit": "kgCO2e/kg", "value": 0.9, "source": "ecoinvent 3.10"},
+    "木材": {"unit": "kgCO2e/kg", "value": 0.3, "source": "ecoinvent 3.10"},
+    "纸板": {"unit": "kgCO2e/kg", "value": 0.8, "source": "ecoinvent 3.10"},
+    "硅": {"unit": "kgCO2e/kg", "value": 45.0, "source": "IEA 2025"},
+    "锂电池(kg)": {"unit": "kgCO2e/kg", "value": 120.0, "source": "IVL 2024"},
+    "芯片(kg)": {"unit": "kgCO2e/kg", "value": 2000.0, "source": "SEMI 2025"}
+  },
+  "transport": {
+    "海运": {"unit": "kgCO2e/吨·km", "value": 0.015},
+    "铁路": {"unit": "kgCO2e/吨·km", "value": 0.025},
+    "公路": {"unit": "kgCO2e/吨·km", "value": 0.12},
+    "空运": {"unit": "kgCO2e/吨·km", "value": 0.60}
+  },
+  "carbon_price": {
+    "全国碳市场": {"unit": "元/tCO2", "value": 85.0, "updated": "2026-05"},
+    "欧盟ETS": {"unit": "EUR/tCO2", "value": 72.5, "updated": "2026-05"}
+  }
+}

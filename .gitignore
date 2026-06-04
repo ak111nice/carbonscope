@@ -1,0 +1,48 @@
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.spec
+
+# 临时文件
+~$*
+*.tmp
+tmp_images/
+
+# IDE
+.vscode/
+.idea/
+
+# 本地配置（有敏感信息的不推）
+.env
+*secret*
+
+# 旧版本备份
+carbon_accounting.py
+carbon_report.txt
+carbon_v2.py
+carbonscope.py
+carbon_*.py
+!src/carbon*.py
+
+# 大文件（pdf.js 本地副本不推，装完环境自己下）
+# GitHub Pages 需要这两个文件支持前端离线 PDF 解析
+!data/pdf.min.js
+!data/pdf.worker.min.js
+
+# Streamlit
+.streamlit/
+
+# 测试产物
+test_all.py
+*.spec

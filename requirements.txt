@@ -1,0 +1,7 @@
+pandas
+numpy
+matplotlib
+pdfplumber
+streamlit
+pywebview
+pyinstaller
