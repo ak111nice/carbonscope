@@ -74,10 +74,13 @@ footer { text-align:center; padding:16px; color:#475569; font-size:.72rem }
   </div>
 </div>
 <div id="tab-calc" class="tab active">
-  <div class="card">
-    <h3>📂 能源数据</h3>
+    <div class="card" style="background: linear-gradient(135deg, rgba(34,211,238,.08), rgba(16,185,129,.08)); border-color: rgba(34,211,238,.2)">
+    <h3>📂 能源数据 <span style="color:var(--accent);font-size:.76rem;font-weight:400">（已自动加载演示数据）</span></h3>
+    <div style="margin-bottom:10px">
+      <button class="btn" onclick="loadDemo()" style="padding:8px 16px;font-size:.85rem">🔄 重新加载</button>
+      <span style="color:#94a3b8;font-size:.78rem;margin-left:8px">或上传你的 CSV</span>
+    </div>
     <input type="file" id="csvFile" accept=".csv" style="width:auto" onchange="handleCSV(event)">
-    <button class="btn btn-sm" style="margin-left:6px" onclick="loadDemo()">演示数据</button>
     <span id="csvPreview" style="color:#94a3b8;font-size:.78rem;margin-left:8px"></span>
   </div>
   <div id="calcResults" style="display:none">
@@ -156,7 +159,7 @@ footer { text-align:center; padding:16px; color:#475569; font-size:.72rem }
     <h3>ℹ️ CarbonScope v4 — AI 碳盘查自动化系统</h3>
     <div style="line-height:1.8;font-size:.85rem;max-width:800px">
       <h4 style="color:var(--accent);margin-top:12px">📌 项目定位</h4>
-      <p>面向制造企业的碳管理一站式工具。面试官打开即全功能演示，无需安装任何依赖。</p>
+      <p>面向制造企业的碳管理一站式工具。面试官打开即全功能演示，无需安装任何依赖。顶部标签栏可切换 7 个模块 — 产品碳足迹在 🏭 第三个标签。</p>
 
       <h4 style="color:var(--accent);margin-top:12px">🏗 技术架构</h4>
       <table style="font-size:.8rem;margin:8px 0">
