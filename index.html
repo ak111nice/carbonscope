@@ -58,26 +58,17 @@ footer { text-align:center; padding:16px; color:#475569; font-size:.72rem }
   <button data-tab="pdf">📄 PDF解析</button>
   <button data-tab="iot">📡 IoT仪表</button>
   <button data-tab="report">📋 完整报告</button>
-  <button data-tab="video">🎬 操作演示</button>
   <button data-tab="about">ℹ️ 关于</button>
 </nav>
 <main>
-<div id="tab-video" class="tab">
-  <div class="card" style="text-align:center">
-    <h3>🎬 CarbonScope 操作演示</h3>
-    <p style="color:#94a3b8;font-size:.82rem;margin-bottom:12px">面试官可直接观看全部功能演示，无需安装任何环境</p>
-    <video controls preload="none" style="width:100%;max-width:900px;border-radius:8px"
-      poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='506' fill='%231e293b'%3E%3Crect width='900' height='506' fill='%230f172a'/%3E%3Ctext x='450' y='240' text-anchor='middle' fill='%2322d3ee' font-size='48'%3E▶%3C/text%3E%3Ctext x='450' y='290' text-anchor='middle' fill='%2394a3b8' font-size='18'%3E点击播放操作演示%3C/text%3E%3C/svg%3E">
-      <source src="demo.mp4" type="video/mp4">
-      您的浏览器不支持视频播放，可 <a href="demo.mp4" style="color:var(--accent)">下载观看</a>
-    </video>
-  </div>
-</div>
 <div id="tab-calc" class="tab active">
-  <div class="card">
-    <h3>📂 能源数据</h3>
-    <input type="file" id="csvFile" accept=".csv" style="width:auto" onchange="handleCSV(event)">
-    <button class="btn btn-sm" style="margin-left:6px" onclick="loadDemo()">演示数据</button>
+    <div class="card" style="background: linear-gradient(135deg, rgba(34,211,238,.08), rgba(16,185,129,.08)); border-color: rgba(34,211,238,.2)">
+    <h3>📂 能源数据 <span style="color:var(--accent);font-size:.76rem;font-weight:400">（已为你加载演示数据，可直接查看核算结果）</span></h3>
+    <div style="margin-bottom:10px">
+      <button class="btn" onclick="loadDemo()" style="background: var(--accent); color:#0f172a; padding:8px 16px; font-size:.85rem">🔄 重新加载演示数据</button>
+      <span style="color:#94a3b8;font-size:.78rem;margin-left:8px">或上传你的 CSV</span>
+    </div>
+    <input type="file" id="csvFile" accept=".csv" style="width:auto" onchange="handleCSV(event)" placeholder="选择CSV文件">
     <span id="csvPreview" style="color:#94a3b8;font-size:.78rem;margin-left:8px"></span>
   </div>
   <div id="calcResults" style="display:none">
@@ -106,8 +97,8 @@ footer { text-align:center; padding:16px; color:#475569; font-size:.72rem }
   </div>
 </div>
 <div id="tab-product" class="tab">
-  <div class="card">
-    <h3>🏭 产品碳足迹 (ISO 14067)</h3>
+   <div class="card">
+    <h3>🏭 产品碳足迹 (ISO 14067，在顶部标签栏选择)</h3>
     <div class="grid2">
       <div><label>产品名称</label><input type="text" id="prodName" value="智能手机"><label style="margin-top:6px">原材料 (JSON)</label><textarea id="prodMats" rows="3">{"钢材":50,"铝材":10,"塑料":20,"芯片(kg)":1}</textarea></div>
       <div><label>电力 (MWh)</label><input type="number" id="prodElec" value="0.5" step="0.1"><label style="margin-top:6px">运输方式</label><select id="prodTrans"><option>公路</option><option>铁路</option><option>海运</option><option>空运</option></select><label style="margin-top:6px">运输距离 (km)</label><input type="number" id="prodDist" value="800"><label style="margin-top:6px">运输重量 (吨)</label><input type="number" id="prodWeight" value="0.1" step="0.01"><label style="margin-top:6px">生产废品率 (%)</label><input type="number" id="prodWaste" value="5"></div>
@@ -153,49 +144,24 @@ footer { text-align:center; padding:16px; color:#475569; font-size:.72rem }
 </div>
 <div id="tab-about" class="tab">
   <div class="card">
-    <h3>ℹ️ CarbonScope v4 — AI 碳盘查自动化系统</h3>
-    <div style="line-height:1.8;font-size:.85rem;max-width:800px">
-      <h4 style="color:var(--accent);margin-top:12px">📌 项目定位</h4>
-      <p>面向制造企业的碳管理一站式工具。面试官打开即全功能演示，无需安装任何依赖。</p>
-
-      <h4 style="color:var(--accent);margin-top:12px">🏗 技术架构</h4>
-      <table style="font-size:.8rem;margin:8px 0">
-        <tr><td style="color:#94a3b8;width:100px">前端</td><td>HTML5 · Chart.js · pdf.js · 纯浏览器离线运行</td></tr>
-        <tr><td style="color:#94a3b8">引擎</td><td>Python · Pandas · pdfplumber · Streamlit · PyInstaller</td></tr>
-        <tr><td style="color:#94a3b8">因子库</td><td>JSON 独立维护，含版本号/来源/更新时间，可审计追溯</td></tr>
-        <tr><td style="color:#94a3b8">IoT</td><td>MODBUS RTU/TCP 协议模拟，7通道仪表实时采集</td></tr>
-        <tr><td style="color:#94a3b8">部署</td><td>GitHub Pages 纯前端 · Streamlit Web · PyInstaller EXE 三平台</td></tr>
-      </table>
-
-      <h4 style="color:var(--accent);margin-top:12px">📦 六大模块</h4>
-      <p>📊 碳排放核算（GB/T 32150-2025） | 💰 碳配额盈亏模拟 | 🏭 产品碳足迹（ISO 14067） | 📄 PDF 中文账单解析 | 📡 IoT MODBUS 采集 | 📋 完整报告导出</p>
-
-      <h4 style="color:var(--accent);margin-top:12px">🧪 质量控制</h4>
-      <p>数据校验（单位匹配·重复检测·负数拦截） → Z-score 异常检测 → 自然语言减排建议 → 碳市场合规判断</p>
-
-      <h4 style="color:var(--accent);margin-top:12px">🔗 链接</h4>
-      <p>
-        🎬 <a href="https://github.com/ak111nice/carbonscope/blob/main/demo.mp4" target="_blank" style="color:var(--accent)">操作演示视频</a> &nbsp;|&nbsp;
-        📂 <a href="https://github.com/ak111nice/carbonscope" target="_blank" style="color:var(--accent)">GitHub 仓库</a> &nbsp;|&nbsp;
-        🌐 <a href="https://ak111nice.github.io/carbonscope/" target="_blank" style="color:var(--accent)">在线演示</a> &nbsp;|&nbsp;
-        👤 <a href="mailto:1074146990@qq.com" style="color:var(--accent)">联系作者</a>
-      </p>
-
-      <h4 style="color:var(--accent);margin-top:12px">📁 技术栈详情</h4>
-      <p style="color:#94a3b8">Python: pandas · numpy · pdfplumber · Streamlit · PyInstaller · re · json</p>
-      <p style="color:#94a3b8">前端: Chart.js 4.x · pdf.js 4.x · FileReader API · Canvas API</p>
-      <p style="color:#94a3b8">标准: GB/T 32150-2025 · ISO 14067 · CBAM（欧盟碳关税基础）</p>
+    <h3>ℹ️ CarbonScope v4</h3>
+    <div style="line-height:1.8;font-size:.85rem;max-width:700px">
+      <p><strong>📍 快速导航：</strong>顶部标签栏可切换六大模块 — 产品碳足迹在第三个标签 🔗 <a href="https://ak111nice.github.io/carbonscope/" target="_blank" style="color:var(--accent)">在线演示</a> &nbsp;|&nbsp; 📂 <a href="https://github.com/ak111nice/carbonscope" target="_blank" style="color:var(--accent)">GitHub 仓库</a></p>
+      <p style="margin-top:8px"><strong>六大模块：</strong>碳排放核算 | 配额盈亏模拟 | 产品碳足迹 | PDF中文解析 | IoT仪表采集 | 完整报告导出</p>
+      <p style="margin-top:8px"><strong>技术栈：</strong>HTML5 · Chart.js · pdf.js · JSON因子库 · IoT MODBUS模拟</p>
+      <p style="margin-top:8px"><strong>定位：</strong>碳中和×AI交叉项目。面试官扫码即开，全功能演示。</p>
+      <p style="margin-top:8px;color:#94a3b8">CarbonScope © 2026 | v4 因子库+配额+PDF+IoT</p>
     </div>
   </div>
 </div>
 </main>
-<footer>🌍 CarbonScope v4 · <a href="https://github.com/ak111nice/carbonscope" target="_blank" style="color:var(--accent)">GitHub</a> · 因子库JSON · 配额盈亏 · PDF解析 · IoT采集 · 碳足迹 · GB/T 32150 · ISO 14067</footer>
+<footer>CarbonScope v4 · 因子库JSON · 配额盈亏 · PDF解析 · IoT采集 · 碳足迹 · GB/T 32150 · ISO 14067</footer>
 
 <script src="data/chart.min.js"></script>
 <script src="data/pdf.min.js"></script>
 <script>
 // ====================== 数据层 ======================
-let EMISSION_FACTORS={"电网电力":{unit:"tCO2/MWh",factor:0.5810,scope:"Scope 2"},"天然气":{unit:"tCO2/万m³",factor:21.62,scope:"Scope 1"},"烟煤":{unit:"tCO2/吨",factor:2.53,scope:"Scope 1"},"柴油":{unit:"tCO2/吨",factor:3.16,scope:"Scope 1"},"汽油":{unit:"tCO2/吨",factor:2.99,scope:"Scope 1"},"液化石油气":{unit:"tCO2/吨",factor:3.17,scope:"Scope 1"},"水泥熟料":{unit:"tCO2/吨熟料",factor:0.535,scope:"Scope 1"},"钢铁(吨钢)":{unit:"tCO2/吨钢",factor:1.80,scope:"Scope 1"}};
+let EMISSION_FACTORS={"电网电力":{unit:"tCO2/MWh",factor:0.5810,scope:"Scope 2"},"天然气":{unit:"tCO2/万m³",factor:21.62,scope:"Scope 1"},"烟煤":{unit:"tCO2/吨",factor:2.53,scope:"Scope 1"},"柴油":{unit:"tCO2/吨",factor:3.16,scope:"Scope 1"},"汽油":{unit:"tCO2/吨",factor:2.99,scope:"Scope 1"},"液化石油气":{unit:"tCO2/吨",factor:3.17,scope:"Scope 1"}};
 let MATERIAL_FACTORS={"钢材":2.3,"铝材":11.5,"铜":5.8,"塑料":3.1,"玻璃":1.2,"水泥":0.9,"木材":0.3,"纸板":0.8,"硅":45,"锂电池(kg)":120,"芯片(kg)":2000};
 let TRANSPORT_FACTORS={"海运":0.015,"铁路":0.025,"公路":0.12,"空运":0.60};
 let currentData=[];
