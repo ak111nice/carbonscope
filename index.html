@@ -58,9 +58,21 @@ footer { text-align:center; padding:16px; color:#475569; font-size:.72rem }
   <button data-tab="pdf">📄 PDF解析</button>
   <button data-tab="iot">📡 IoT仪表</button>
   <button data-tab="report">📋 完整报告</button>
+  <button data-tab="video">🎬 操作演示</button>
   <button data-tab="about">ℹ️ 关于</button>
 </nav>
 <main>
+<div id="tab-video" class="tab">
+  <div class="card" style="text-align:center">
+    <h3>🎬 CarbonScope 操作演示</h3>
+    <p style="color:#94a3b8;font-size:.82rem;margin-bottom:12px">面试官可直接观看全部功能演示，无需安装任何环境</p>
+    <video controls preload="none" style="width:100%;max-width:900px;border-radius:8px"
+      poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='506' fill='%231e293b'%3E%3Crect width='900' height='506' fill='%230f172a'/%3E%3Ctext x='450' y='240' text-anchor='middle' fill='%2322d3ee' font-size='48'%3E▶%3C/text%3E%3Ctext x='450' y='290' text-anchor='middle' fill='%2394a3b8' font-size='18'%3E点击播放操作演示%3C/text%3E%3C/svg%3E">
+      <source src="demo.mp4" type="video/mp4">
+      您的浏览器不支持视频播放，可 <a href="demo.mp4" style="color:var(--accent)">下载观看</a>
+    </video>
+  </div>
+</div>
 <div id="tab-calc" class="tab active">
   <div class="card">
     <h3>📂 能源数据</h3>
